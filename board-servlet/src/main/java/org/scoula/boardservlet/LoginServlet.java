@@ -19,12 +19,22 @@ public class LoginServlet extends HttpServlet {
     private static final String JDBC_URL = "jdbc:mysql://localhost:3306/board";
     private static final String JDBC_USER = "root";
     private static final String JDBC_PASSWORD = "1234";
+    private static Connection conn = null;
 
+    @Override
+    public void init() throws ServletException {
+        System.out.println("##### LoginServlet init 메서드 호출 #####");
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
+            System.out.println("##### MySQL 연결 성공 #####");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
-
         RequestDispatcher dispatcher = request.getRequestDispatcher("login.jsp");
         dispatcher.forward(request, response);
     }
@@ -37,16 +47,12 @@ public class LoginServlet extends HttpServlet {
         boolean isLoginSuccess = false;
 
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            String sql = "select * from users where username=? and password=?";
-
-            try(Connection conn = DriverManager.getConnection(JDBC_URL,JDBC_USER, JDBC_PASSWORD);
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
+            String sql = "SELECT * FROM users WHERE username=? AND password=?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, username);
                 pstmt.setString(2, password);
 
-                try (ResultSet rs = pstmt.executeQuery();) {
+                try (ResultSet rs = pstmt.executeQuery()) {
                     if (rs.next()) {
                         isLoginSuccess = true;
                     }
@@ -55,6 +61,7 @@ public class LoginServlet extends HttpServlet {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         if (isLoginSuccess) {
             request.setAttribute("username", username);
             RequestDispatcher dispatcher = request.getRequestDispatcher("welcome.jsp");
@@ -63,21 +70,19 @@ public class LoginServlet extends HttpServlet {
             response.sendRedirect("loginFailed.jsp");
         }
     }
+
+    @Override
+    public void destroy() {
+        try {
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
+                System.out.println("##### MySQL 접속 종료 #####");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("##### LoginServlet destroyed 호출 #####");
+    }
+
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
